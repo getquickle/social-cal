@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quickle · weekly engine</title>
+<style>
+  :root{
+    --bone:#F6F4EC; --card:#FFFFFF; --avocado:#032513; --kale:#1B4F3E;
+    --pickle:#59BC72; --lime:#9FF276; --banana:#F2FB97;
+    --line:rgba(3,37,19,0.14); --line2:rgba(3,37,19,0.28);
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bone);color:var(--avocado);font-family:var(--sans);line-height:1.5;
+    -webkit-font-smoothing:antialiased;padding:28px 18px 64px}
+  .wrap{max-width:760px;margin:0 auto}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--kale);margin:0 0 10px}
+  h1{font-size:13px;margin:0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin:14px 0}
+
+  /* streak header */
+  .streak{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px;justify-content:space-between}
+  .streak .num{font-size:64px;line-height:.9;font-weight:600;letter-spacing:-.02em}
+  .streak .num small{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--kale);display:block;font-weight:400;margin-top:8px}
+  .tierline{text-align:right}
+  .tierline .month{font-size:15px;font-weight:600}
+  .tierline .meta{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--kale);margin-top:6px}
+  .ridge{display:flex;align-items:flex-end;gap:3px;height:34px;margin-top:16px}
+  .ridge i{flex:1;background:var(--line);border-radius:2px 2px 0 0;transition:background .3s}
+  .ridge i.on{background:var(--pickle)}
+
+  /* progress */
+  .prog{display:flex;align-items:center;gap:12px;margin:2px 0 14px}
+  .bar{flex:1;height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+  .bar > span{display:block;height:100%;width:0;background:var(--pickle);transition:width .3s}
+  .prog .count{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--kale);white-space:nowrap}
+
+  .sec-label{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--kale);margin:0 0 12px;display:flex;justify-content:space-between;align-items:baseline}
+  .sec-label span{color:var(--line2);letter-spacing:.1em}
+
+  /* checklist */
+  ul.list{list-style:none;margin:0;padding:0}
+  ul.list li{display:flex;align-items:flex-start;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+  ul.list li:first-child{border-top:none}
+  ul.list input[type=checkbox]{appearance:none;-webkit-appearance:none;margin:1px 0 0;width:22px;height:22px;flex:0 0 22px;
+    border:1.5px solid var(--line2);border-radius:6px;background:var(--card);cursor:pointer;position:relative;transition:background .15s,border-color .15s}
+  ul.list input[type=checkbox]:checked{background:var(--pickle);border-color:var(--pickle)}
+  ul.list input[type=checkbox]:checked::after{content:"";position:absolute;left:7px;top:3px;width:5px;height:10px;
+    border:solid var(--avocado);border-width:0 2px 2px 0;transform:rotate(45deg)}
+  ul.list input[type=checkbox]:focus-visible{outline:2px solid var(--kale);outline-offset:2px}
+  ul.list label{cursor:pointer;font-size:15px;padding-top:1px}
+  ul.list li.done label{color:var(--line2);text-decoration:line-through}
+  .tag{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--kale);
+    border:1px solid var(--line);border-radius:99px;padding:2px 7px;margin-left:auto;align-self:center;white-space:nowrap}
+
+  .banner{background:var(--banana);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:14px;
+    font-size:14px;display:none}
+  .banner.show{display:block}
+
+  .btn{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--kale);
+    background:none;border:1px solid var(--line2);border-radius:99px;padding:6px 12px;cursor:pointer}
+  .btn:hover{background:var(--bone)}
+  .btn:focus-visible{outline:2px solid var(--kale);outline-offset:2px}
+
+  /* hooks + reference */
+  .hooks{display:grid;gap:8px}
+  .hooks .h{display:flex;gap:10px;font-size:14px}
+  .hooks .h b{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--kale);min-width:18px;padding-top:3px}
+  .pick{margin-top:12px;font-size:13px;color:var(--kale);border-top:1px dashed var(--line);padding-top:12px}
+
+  details{border:1px solid var(--line);border-radius:12px;margin:10px 0;background:var(--card);overflow:hidden}
+  details summary{cursor:pointer;list-style:none;padding:15px 20px;font-family:var(--mono);font-size:11px;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--kale);display:flex;justify-content:space-between;align-items:center}
+  details summary::-webkit-details-marker{display:none}
+  details summary::after{content:"+";font-size:16px}
+  details[open] summary::after{content:"–"}
+  details .body{padding:4px 20px 20px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  @media(max-width:560px){.two{grid-template-columns:1fr}}
+  .mini{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--kale);margin:0 0 8px}
+  .body ul{margin:0 0 4px;padding-left:18px}
+  .body li{font-size:14px;margin:5px 0}
+  .body a{color:var(--kale)}
+  .plat{margin-bottom:14px}
+
+  footer{margin-top:26px;text-align:center}
+  footer p{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--line2);margin:0 0 10px;line-height:1.7}
+  .reset{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--line2);
+    background:none;border:none;cursor:pointer;text-decoration:underline}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">quickle · weekly engine</p>
+  <h1 style="position:absolute;left:-9999px">Quickle weekly content engine</h1>
+
+  <div class="card">
+    <div class="streak">
+      <div class="num" id="streakNum">0<small>week streak</small></div>
+      <div class="tierline">
+        <div class="month" id="monthName">month 1 · find the rhythm</div>
+        <div class="meta" id="tierMeta">resets monday</div>
+      </div>
+    </div>
+    <div class="ridge" id="ridge"></div>
+  </div>
+
+  <div class="card">
+    <p class="sec-label">do this week <span id="weekOf"></span></p>
+    <div class="prog">
+      <div class="bar"><span id="barFill"></span></div>
+      <div class="count" id="coreCount">0 / 0 core</div>
+    </div>
+    <ul class="list" id="coreList"></ul>
+    <div class="banner" id="banner">in the bag. your core is done, so the streak ticks up monday. anything in stretch is gravy.</div>
+
+    <p class="sec-label" style="margin-top:22px">stretch <span>optional, builds reach</span></p>
+    <ul class="list" id="stretchList"></ul>
+  </div>
+
+  <div class="card">
+    <p class="sec-label">before each outing <button class="btn" id="clearShots">clear for next outing</button></p>
+    <ul class="list" id="shotList"></ul>
+    <p style="font-size:13px;color:var(--kale);margin:10px 0 0">if you get nothing else, get the wide and one clip with sound.</p>
+  </div>
+
+  <div class="card">
+    <p class="sec-label">hooks · the first frame is the hook</p>
+    <div class="hooks">
+      <div class="h"><b>1</b><span>scale. a small figure against a huge wall of mountain or desert.</span></div>
+      <div class="h"><b>2</b><span>stillness that breaks. hold a quiet frame, then frost cracks or a runner enters.</span></div>
+      <div class="h"><b>3</b><span>detail first. open on salt on skin or frost on a sleeve, then pull back to the world.</span></div>
+      <div class="h"><b>4</b><span>sound cold open. the pour, footsteps, or wind before any image lands.</span></div>
+      <div class="h"><b>5</b><span>one subject, much space. a lone figure, or the pouch, in a field of empty.</span></div>
+    </div>
+    <p class="pick">most quickle, least used: detail first plus a sound cold open. it stops the scroll without trying.</p>
+  </div>
+
+  <details>
+    <summary>do and don't</summary>
+    <div class="body two">
+      <div>
+        <p class="mini">do</p>
+        <ul>
+          <li>lead with the first frame</li>
+          <li>shoot once, post four ways</li>
+          <li>post real efforts, yours and the community's</li>
+          <li>reply to everyone, fast</li>
+          <li>let the landscape and the work carry it</li>
+          <li>natural sound: wind, footsteps, the pour</li>
+          <li>sentence case, one line is enough</li>
+        </ul>
+      </div>
+      <div>
+        <p class="mini">don't</p>
+        <ul>
+          <li>say "watch this" or beg for the click</li>
+          <li>show your face if you don't want to</li>
+          <li>claim it cures or prevents cramps, ever</li>
+          <li>post stock or anything you did not make</li>
+          <li>over edit, restraint reads as premium</li>
+          <li>chase a trend that fights the brand</li>
+          <li>watch follower count for 90 days</li>
+        </ul>
+      </div>
+    </div>
+  </details>
+
+  <details>
+    <summary>easy wins per platform</summary>
+    <div class="body">
+      <div class="plat"><p class="mini">instagram</p><ul>
+        <li>carousels and reels out reach single photos</li>
+        <li>put the line in the first card or first two seconds</li>
+        <li>one stories poll a week</li>
+        <li>reply to every comment in the first hour</li>
+      </ul></div>
+      <div class="plat"><p class="mini">strava</p><ul>
+        <li>your logged runs are content, one line field note on each</li>
+        <li>fill the posts tab, one trail note a week</li>
+        <li>run a free club challenge on a wasatch segment</li>
+        <li>invite your referral athletes, ask them to share</li>
+      </ul></div>
+      <div class="plat"><p class="mini">tiktok</p><ul>
+        <li>natural sound up, the pour and footsteps travel</li>
+        <li>hands only process clips are the easy faceless win</li>
+        <li>one line of text, never a script</li>
+        <li>post the same vertical to reels and shorts</li>
+      </ul></div>
+      <div class="plat"><p class="mini">youtube</p><ul>
+        <li>no cadence, bank how it is made and what is quickle</li>
+        <li>repost your strongest verticals as shorts</li>
+        <li>co produce one short doc before making your own</li>
+      </ul></div>
+    </div>
+  </details>
+
+  <details>
+    <summary>accounts to reference</summary>
+    <div class="body">
+      <div class="plat"><p class="mini">instagram</p><ul>
+        <li><a href="https://www.instagram.com/patagonia/">@patagonia</a> · story led restraint, product in the background</li>
+        <li><a href="https://www.instagram.com/nnormal_official/">@nnormal_official</a> · spare grid, always less never more</li>
+        <li><a href="https://www.instagram.com/fieldnotesbrand/">@fieldnotesbrand</a> · numbered editions, how it is made reels</li>
+        <li><a href="https://www.instagram.com/kilianjornet/">@kilianjornet</a> · athlete as storyteller, raw but premium</li>
+      </ul></div>
+      <div class="plat"><p class="mini">tiktok</p><ul>
+        <li>@patagonia and @nnormal_official run quiet, place forward, low hype tiktok, your faceless lane exactly</li>
+        <li>browse the cinematic running and trail running feeds for no talking, natural sound edits</li>
+      </ul></div>
+      <div class="plat"><p class="mini">strava</p><ul>
+        <li>the feed and clif bar clubs, value first, club as home. model quickle trail notes on these</li>
+      </ul></div>
+      <div class="plat"><p class="mini">youtube</p><ul>
+        <li>nnormal and kilian jornet channels, premium trail films with an athlete voice</li>
+        <li>freetrail for community, patagonia films and salomon tv for the epic short film bar</li>
+      </ul></div>
+    </div>
+  </details>
+
+  <footer>
+    <p id="howline">complete the core list each week to keep the streak. it climbs the throughput at week 4, 8, and 12.</p>
+    <button class="reset" id="resetAll">reset everything</button>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY="quickle_engine_v1", mem=null;
+  function read(){ try{ var r=localStorage.getItem(KEY); return r?JSON.parse(r):null; }catch(e){ return mem; } }
+  function write(s){ try{ localStorage.setItem(KEY,JSON.stringify(s)); }catch(e){ mem=s; } }
+
+  var TIERS=[
+    {month:1,name:"find the rhythm",
+     core:["post 1 instagram · the long days","post 1 tiktok · faceless, sound up","log 1 strava run · one line field note"],
+     stretch:["1 story · a clip from your outing","reply to every comment and dm"]},
+    {month:2,name:"build",
+     core:["post 2 instagram","post 2 tiktok","1 strava club post · a trail note","log every run this week"],
+     stretch:["1 stories poll","reply to everyone"]},
+    {month:3,name:"steady",
+     core:["post 3 instagram","post 3 tiktok","1 strava club post"],
+     stretch:["1 stories poll","repost best vertical as a youtube short","reply to everyone"]}
+  ];
+  var BEYOND=["run a monthly club challenge","bank 1 youtube asset · how it is made or what is quickle","line up a co produced short doc"];
+  var SHOTS=["wide landscape · the world","body in motion · feet, hands, breath","one close texture · salt, frost, dust","the product moment · hands only, no face","three to five short clips with sound","one ambient sound clip · wind, footsteps, the pour"];
+
+  function mondayOf(d){ d=new Date(d); d.setHours(0,0,0,0); var day=d.getDay(); var diff=(day===0?-6:1-day); d.setDate(d.getDate()+diff); return d; }
+  function weeksBetween(a,b){ return Math.round((b-a)/(7*864e5)); }
+  function tierIndex(streak){ if(streak<4)return 0; if(streak<8)return 1; return 2; }
+
+  function init(){
+    var thisMon=mondayOf(new Date());
+    var s=read();
+    if(!s){ s={monday:thisMon.toISOString(),streak:0,tier:0,beyond:false,core:{},stretch:{}}; write(s); return s; }
+    var savedMon=mondayOf(new Date(s.monday));
+    if(savedMon.getTime()===thisMon.getTime()) return s;
+    var elapsed=weeksBetween(savedMon,thisMon);
+    var prev=TIERS[s.tier||0];
+    var prevComplete=prev.core.every(function(_,i){ return !!s.core[i]; });
+    var streak=(elapsed===1 && prevComplete) ? (s.streak+1) : 0;
+    s={monday:thisMon.toISOString(),streak:streak,tier:tierIndex(streak),beyond:streak>=12,core:{},stretch:{}};
+    write(s); return s;
+  }
+
+  var state=init();
+
+  // elements
+  var $=function(id){return document.getElementById(id);};
+  var coreList=$("coreList"), stretchList=$("stretchList"), shotList=$("shotList");
+  var shotState={};
+
+  function tierObj(){ return TIERS[state.tier]; }
+  function stretchItems(){ var arr=tierObj().stretch.slice(); if(state.beyond) arr=arr.concat(BEYOND); return arr; }
+
+  function ridge(){
+    var box=$("ridge"); box.innerHTML="";
+    var N=16, lit=Math.min(state.streak,N);
+    for(var i=0;i<N;i++){ var bar=document.createElement("i");
+      bar.style.height=(20+(i/(N-1))*80)+"%";
+      if(i<lit) bar.className="on";
+      box.appendChild(bar); }
+  }
+
+  function daysToMonday(){ var now=new Date(); var nm=mondayOf(now); nm.setDate(nm.getDate()+7); return Math.max(0,Math.ceil((nm-now)/864e5)); }
+  function weeksToNextTier(){ if(state.streak<4)return 4-state.streak; if(state.streak<8)return 8-state.streak; if(state.streak<12)return 12-state.streak; return 0; }
+
+  function header(){
+    $("streakNum").innerHTML=state.streak+'<small>week streak</small>';
+    var t=tierObj();
+    $("monthName").textContent= state.beyond ? "month 3+ · keep climbing" : ("month "+t.month+" · "+t.name);
+    var d=daysToMonday(), wk=weeksToNextTier();
+    var meta="resets monday · "+d+(d===1?" day":" days")+" left";
+    if(wk>0) meta+="   ·   next tier in "+wk+(wk===1?" week":" weeks");
+    $("tierMeta").textContent=meta;
+    ridge();
+    var mon=new Date(state.monday);
+    $("weekOf").textContent="week of "+mon.toLocaleDateString(undefined,{month:"short",day:"numeric"});
+  }
+
+  function progress(){
+    var core=tierObj().core, total=core.length, done=0;
+    for(var i=0;i<total;i++){ if(state.core[i]) done++; }
+    $("coreCount").textContent=done+" / "+total+" core";
+    $("barFill").style.width=(total?Math.round(done/total*100):0)+"%";
+    $("banner").className="banner"+(done===total && total>0 ? " show":"");
+  }
+
+  function buildList(el, items, store, onChange){
+    el.innerHTML="";
+    items.forEach(function(label,i){
+      var li=document.createElement("li");
+      var cb=document.createElement("input"); cb.type="checkbox"; cb.id=store+"_"+i;
+      cb.checked=!!state[store] && !!state[store][i] || (store==="shot" && !!shotState[i]);
+      var lb=document.createElement("label"); lb.setAttribute("for",cb.id); lb.textContent=label;
+      if(cb.checked) li.className="done";
+      cb.addEventListener("change",function(){
+        li.className=cb.checked?"done":"";
+        onChange(i,cb.checked);
+      });
+      li.appendChild(cb); li.appendChild(lb);
+      el.appendChild(li);
+    });
+  }
+
+  function renderChecklists(){
+    buildList(coreList, tierObj().core, "core", function(i,v){ state.core[i]=v; write(state); progress(); });
+    buildList(stretchList, stretchItems(), "stretch", function(i,v){ state.stretch[i]=v; write(state); });
+    buildList(shotList, SHOTS, "shot", function(i,v){ shotState[i]=v; });
+  }
+
+  function renderAll(){ header(); renderChecklists(); progress(); }
+  renderAll();
+
+  $("clearShots").addEventListener("click",function(){ shotState={}; buildList(shotList,SHOTS,"shot",function(i,v){ shotState[i]=v; }); });
+  $("resetAll").addEventListener("click",function(){
+    if(!confirm("Reset the streak and this week's checklist back to zero?")) return;
+    try{ localStorage.removeItem(KEY); }catch(e){} mem=null; state=init(); shotState={}; renderAll();
+  });
+})();
+</script>
+</body>
+</html>
